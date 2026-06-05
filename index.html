@@ -438,14 +438,170 @@ function showStatus(msg,dur=2800){
 }
 function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function norm(s){return s.toLowerCase().replace(/[^a-z0-9\s]/g,'').trim();}
-function checkAns(spoken,answers){
-  const s=norm(spoken);
-  return answers.some(a=>{
-    const c=norm(a);
-    if(s===c||s.includes(c))return true;
-    const w=c.split(/\s+/).filter(x=>x.length>2);
-    return w.length>0&&w.every(x=>s.includes(x));
+
+// Synonym map — expand spoken words to equivalents before matching
+const SYNONYMS = {
+  // Numbers
+  'one':'1','two':'2','three':'3','four':'4','five':'5','six':'6','seven':'7',
+  'eight':'8','nine':'9','ten':'10','eleven':'11','twelve':'12','thirteen':'13',
+  'fourteen':'14','fifteen':'15','twenty':'20','twentyseven':'27','hundred':'100',
+  'four hundred':'435','four hundred thirty five':'435',
+  // Common answer synonyms
+  'free market':'capitalism','capitalist':'capitalism','free market economy':'capitalism',
+  'basic law':'constitution','highest law':'constitution','supreme law':'constitution',
+  'amendments':'amendment process','changed by amendments':'amendment process',
+  'by amendments':'amendment process',
+  'free speech':'freedom of speech','freedom to speak':'freedom of speech',
+  'right to speak':'freedom of speech',
+  'self rule':'self-government','selfgovernment':'self-government','govern themselves':'self-government',
+  'peoples consent':'consent of the governed','consent of people':'consent of the governed',
+  'no one above law':'no one is above the law','nobody above law':'no one is above the law',
+  'all must follow':'everyone must follow the law',
+  'checks balances':'checks and balances','balance of power':'checks and balances',
+  'separation':'separation of powers',
+  'too powerful':'so one part does not become too powerful',
+  'representative democracy':'republic','democracy':'republic',
+  'federal republic':'republic',
+  'congress and president':'legislative executive and judicial',
+  'senate house':'senate and house of representatives',
+  'house senate':'senate and house of representatives',
+  'makes laws':'writes laws','create laws':'writes laws','creates laws':'writes laws','write laws':'writes laws',
+  'can declare war':'declares war','declare war':'declares war',
+  'commander in chief':'the president','president':'the president',
+  'vice president':'the vice president',
+  'signs laws':'signs bills into law','sign bills':'signs bills into law',
+  'veto':'vetoes bills','can veto':'vetoes bills',
+  'advise':'advises the president','gives advice':'advises the president',
+  'advises president':'advises the president',
+  'decides cases':'reviews laws','interprets laws':'reviews laws',
+  'interprets':'reviews laws','interpret':'reviews laws',
+  'highest court':'supreme court',
+  'top court':'supreme court',
+  'nine':'9','nine justices':'9',
+  'five':'5','five justices':'5',
+  'lifetime':'for life','life term':'for life','serve for life':'for life',
+  'independent':'to be independent of politics',
+  'pearl harbor':'bombing of pearl harbor','japan attacked':'japanese attacked pearl harbor',
+  'japan bombed':'japanese attacked pearl harbor',
+  'stop communism':'to stop the spread of communism','prevent communism':'to stop the spread of communism',
+  'fight communism':'to stop the spread of communism',
+  'racial equality':'fought to end racial discrimination','civil rights':'fought to end racial discrimination',
+  'end discrimination':'fought to end racial discrimination',
+  'equality':'fought to end racial discrimination',
+  'taxes':'required by law','pay taxes':'civic duty',
+  'born here':'be born in the united states','born in usa':'be born in the united states',
+  'naturalization':'naturalize','become naturalized':'naturalize',
+  'washington dc':'washington d c','dc':'washington d c','district of columbia':'washington d c',
+  'new york':'new york harbor','nyc':'new york harbor','ny':'new york harbor',
+  'thirteen colonies':'because there were 13 original colonies',
+  '13 colonies':'because there were 13 original colonies',
+  'fifty states':'because there are 50 states','50 states':'because there are 50 states',
+  'star spangled':'the star spangled banner','national anthem':'the star spangled banner',
+  'out of many one':'out of many one','from many one':'out of many one','many one':'out of many one',
+  'fourth of july':'independence day','july 4':'independence day',
+  'honor soldiers':'a holiday to honor soldiers who died in military service',
+  'honor veterans':'a holiday to honor people in the us military',
+  'honor military':'a holiday to honor people in the us military',
+  'ww1':'world war i','world war 1':'world war i','first world war':'world war i',
+  'ww2':'world war ii','world war 2':'world war ii','second world war':'world war ii',
+  'wwii':'world war ii','wwi':'world war i',
+  'soviet union':'soviet union','ussr':'soviet union','russia':'soviet union',
+  'communism':'communism','nuclear':'nuclear war',
+  'slavery':'the civil war','civil war ended slavery':'the civil war',
+  'lincoln freed':'emancipation proclamation','freed slaves':'emancipation proclamation',
+  'emancipation':'emancipation proclamation',
+  'reconstruction':'during reconstruction',
+  '14th':'14th amendment','fourteenth':'14th amendment',
+  '15th':'15th amendment','fifteenth':'15th amendment',
+  '19th':'19th amendment','nineteenth':'19th amendment',
+  '22nd':'the 22nd amendment','twenty second':'the 22nd amendment',
+  'thomas jefferson':'jefferson','jefferson':'jefferson',
+  'george washington':'washington','washington':'father of our country',
+  'benjamin franklin':'franklin','franklin':'franklin',
+  'james madison':'madison','madison':'father of the constitution',
+  'alexander hamilton':'hamilton','hamilton':'hamilton',
+  'abraham lincoln':'lincoln','lincoln':'lincoln',
+  'martin luther king':'martin luther king jr','mlk':'martin luther king jr',
+  'susan anthony':'susan b anthony','susan b anthony':'susan b anthony',
+  'louisiana':'louisiana territory','louisiana purchase':'louisiana territory',
+  'afghanistan':'war in afghanistan','iraq':'war in iraq','terror':'war on terror',
+  'september 11':'terrorists attacked the united states','911':'terrorists attacked the united states',
+  '9 11':'terrorists attacked the united states',
+};
+
+function expandSynonyms(s){
+  let result = s;
+  // Apply multi-word synonyms first (longer first)
+  const keys = Object.keys(SYNONYMS).sort((a,b)=>b.length-a.length);
+  for(const k of keys){
+    if(result.includes(k)) result = result.split(k).join(SYNONYMS[k]);
+  }
+  return result;
+}
+
+// Core matching — returns true if spoken matches any accepted answer
+function checkAns(spoken, answers){
+  const raw = norm(spoken);
+  const expanded = expandSynonyms(raw);
+
+  return answers.some(ans => {
+    const ca = norm(ans);
+    const caExp = expandSynonyms(ca);
+
+    // 1. Exact match (raw or expanded)
+    if(raw === ca || expanded === ca || raw === caExp || expanded === caExp) return true;
+
+    // 2. Spoken contains the full answer
+    if(raw.includes(ca) || expanded.includes(ca) || expanded.includes(caExp)) return true;
+
+    // 3. Answer contained in spoken (for verbose answers like "it says all people are created equal")
+    if(ca.includes(raw) && raw.length > 4) return true;
+
+    // 4. Key content words from answer all appear in spoken
+    // Strip stopwords for meaningful word matching
+    const STOP = new Set(['the','a','an','of','to','in','is','it','be','are','was','were',
+      'has','have','had','do','does','did','will','would','can','could','should',
+      'may','might','that','this','with','for','on','at','by','from','or','and',
+      'not','but','all','one','two','any','its','our','your','their','they','we',
+      'he','she','i','you','us','him','her','my','his','her','who','what','when',
+      'why','how','if','so','as','up','out','no','only','also','than','then','into',
+      'because','during','after','before','about','which']);
+
+    const meaningfulWords = w => w.split(/\s+/).filter(x => x.length > 1 && !STOP.has(x));
+
+    const ansWords = meaningfulWords(caExp.length > ca.length ? caExp : ca);
+    const spokenWords = meaningfulWords(expanded.length > raw.length ? expanded : raw);
+
+    if(ansWords.length === 0) return false;
+
+    // All key answer words must appear somewhere in spoken
+    const allMatch = ansWords.every(aw =>
+      spokenWords.some(sw => sw === aw || sw.startsWith(aw) || aw.startsWith(sw))
+    );
+    if(allMatch) return true;
+
+    // 5. Fuzzy: majority of key words match (good for partial/voice recognition errors)
+    // e.g. "checks and balance" vs "checks and balances"
+    const matchCount = ansWords.filter(aw =>
+      spokenWords.some(sw => sw === aw || sw.startsWith(aw) || aw.startsWith(sw) ||
+        levenshtein(sw, aw) <= 1)
+    ).length;
+    const ratio = matchCount / ansWords.length;
+
+    // For short answers (1-2 key words) need all; longer answers allow 85% match
+    const threshold = ansWords.length <= 2 ? 1.0 : 0.85;
+    return ratio >= threshold;
   });
+}
+
+// Levenshtein distance for fuzzy single-word matching (typos, voice errors)
+function levenshtein(a, b){
+  if(Math.abs(a.length-b.length) > 3) return 99;
+  const m=a.length, n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i?j?0:i:j));
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
 }
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
