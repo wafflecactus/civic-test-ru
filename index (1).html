@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Тест на гражданство США</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0f;--surface:#12121a;--card:#1a1a26;--border:#2a2a3d;
+  --accent:#7c6af7;--accent2:#f76a8f;--green:#4ade80;--red:#f87171;
+  --ru:#4fc3f7;--text:#e8e8f0;--muted:#6b6b8a;--glow:rgba(124,106,247,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,106,247,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(124,106,247,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh;padding:20px;max-width:780px;margin:0 auto;width:100%;}
+
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;}
+.logo{font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;}
+.logo-dot{width:6px;height:6px;background:var(--accent2);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+.score-badge{font-family:'DM Mono',monospace;font-size:12px;background:var(--card);border:1px solid var(--border);padding:5px 12px;border-radius:100px;color:var(--muted);}
+.score-badge span{color:var(--accent);}
+
+.screen{display:none;flex-direction:column;flex:1;}
+.screen.active{display:flex;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cardIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(247,106,143,.5)}50%{box-shadow:0 0 0 12px rgba(247,106,143,0)}}
+@keyframes bounce{from{transform:scale(0) rotate(-20deg)}to{transform:scale(1) rotate(0)}}
+
+/* ---- MENU ---- */
+.menu-scroll{flex:1;overflow-y:auto;padding-bottom:20px;}
+.menu-scroll::-webkit-scrollbar{display:none;}
+.menu-hero{margin-bottom:28px;animation:fadeUp .5s ease both;}
+.menu-hero h1{font-size:clamp(28px,5vw,46px);font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-bottom:8px;}
+.menu-hero h1 em{font-style:normal;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.menu-hero p{color:var(--muted);font-size:13px;font-family:'DM Mono',monospace;}
+.section-label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:'DM Mono',monospace;}
+
+/* Lang toggle */
+.lang-toggle{display:flex;gap:8px;margin-bottom:20px;animation:fadeUp .5s .05s ease both;}
+.lang-btn{flex:1;padding:10px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--muted);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.lang-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(124,106,247,.1);}
+
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;animation:fadeUp .5s .1s ease both;}
+.mode-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 16px;cursor:pointer;transition:all .2s;text-align:left;position:relative;overflow:hidden;}
+.mode-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0;transition:opacity .2s;}
+.mode-card:hover,.mode-card.active-mode{border-color:var(--accent);}
+.mode-card.active-mode{background:rgba(124,106,247,.08);}
+.mode-card.active-mode::before,.mode-card:hover::before{opacity:1;}
+.mode-icon{font-size:26px;margin-bottom:8px;display:block;}
+.mode-title{font-size:14px;font-weight:700;margin-bottom:3px;}
+.mode-desc{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.5;}
+
+.category-section{animation:fadeUp .5s .15s ease both;margin-bottom:16px;}
+.cat-grid{display:flex;flex-wrap:wrap;gap:7px;}
+.cat-chip{background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:6px 13px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;transition:all .2s;color:var(--muted);}
+.cat-chip.selected{border-color:var(--accent);color:var(--accent);background:rgba(124,106,247,.1);font-weight:700;}
+
+.count-row{display:flex;align-items:center;gap:12px;margin-bottom:20px;animation:fadeUp .5s .2s ease both;}
+.count-label{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;}
+.count-slider{flex:1;accent-color:var(--accent);}
+.count-val{font-size:13px;font-family:'DM Mono',monospace;color:var(--accent);min-width:30px;text-align:right;}
+
+.btn-start-quiz{background:linear-gradient(135deg,var(--accent),#9b8af7);border:none;color:white;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;padding:18px 32px;border-radius:14px;cursor:pointer;transition:all .2s;letter-spacing:.05em;animation:fadeUp .5s .25s ease both;width:100%;}
+.btn-start-quiz:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(124,106,247,.4);}
+
+/* ---- QUIZ ---- */
+.quiz-progress{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.progress-bar-wrap{flex:1;height:3px;background:var(--border);border-radius:3px;overflow:hidden;}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;transition:width .4s ease;}
+.progress-text{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap;}
+
+.question-card{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:24px 22px;margin-bottom:14px;position:relative;overflow:hidden;animation:cardIn .45s cubic-bezier(.34,1.56,.64,1) both;display:flex;flex-direction:column;gap:12px;}
+.question-card::before{content:'';position:absolute;top:-50px;right:-50px;width:150px;height:150px;background:radial-gradient(circle,var(--glow),transparent 70%);border-radius:50%;}
+.q-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.q-number{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);opacity:.8;}
+.q-cat-tag{font-family:'DM Mono',monospace;font-size:10px;background:rgba(247,106,143,.1);color:var(--accent2);border:1px solid rgba(247,106,143,.25);padding:3px 9px;border-radius:100px;}
+
+.q-text{font-size:clamp(16px,3vw,24px);font-weight:700;letter-spacing:-.02em;line-height:1.3;}
+
+/* Russian translation box */
+.ru-box{background:rgba(79,195,247,.06);border:1px solid rgba(79,195,247,.25);border-radius:12px;padding:12px 16px;display:none;animation:fadeUp .3s ease both;}
+.ru-box.show{display:block;}
+.ru-label{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--ru);font-family:'DM Mono',monospace;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.ru-text{font-size:15px;font-weight:600;color:var(--text);line-height:1.4;}
+.ru-loading{color:var(--muted);font-style:italic;font-size:13px;font-family:'DM Mono',monospace;}
+
+/* Translate button */
+.btn-translate{background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.3);border-radius:10px;color:var(--ru);font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;align-self:flex-start;}
+.btn-translate:hover{background:rgba(79,195,247,.2);border-color:var(--ru);}
+.btn-translate:disabled{opacity:.4;cursor:not-allowed;}
+
+.answer-input-row{display:flex;gap:8px;align-items:stretch;}
+.answer-text-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:12px 16px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;outline:none;transition:border-color .2s;}
+.answer-text-input::placeholder{color:var(--muted);}
+.answer-text-input:focus{border-color:var(--accent);}
+.answer-text-input:disabled{opacity:.4;}
+.submit-text-btn{background:var(--accent);border:none;border-radius:11px;color:white;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;padding:12px 16px;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.submit-text-btn:hover{background:#9b8af7;}
+.submit-text-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+.voice-strip{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);transition:all .25s;min-height:46px;}
+.voice-strip.listening{border-color:var(--accent2);color:var(--accent2);}
+.voice-strip.has-text{color:var(--text);border-color:var(--border);}
+.voice-strip.correct{border-color:var(--green);background:rgba(74,222,128,.05);color:var(--green);}
+.voice-strip.incorrect{border-color:var(--red);background:rgba(248,113,113,.05);color:var(--red);}
+.voice-icon{font-size:15px;flex-shrink:0;}
+
+.answer-reveal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:none;animation:fadeUp .3s ease both;}
+.answer-reveal.visible{display:block;}
+.answer-reveal-label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:7px;}
+.answer-reveal-text{font-size:15px;font-weight:600;color:var(--text);line-height:1.5;}
+.answer-reveal-text .also{display:block;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px;}
+
+.result-tag{position:absolute;top:14px;right:14px;padding:4px 11px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;animation:popIn .4s cubic-bezier(.34,1.56,.64,1) both;display:none;}
+.result-tag.correct{background:rgba(74,222,128,.15);color:var(--green);border:1px solid var(--green);display:block;}
+.result-tag.incorrect{background:rgba(248,113,113,.15);color:var(--red);border:1px solid var(--red);display:block;}
+.result-tag.skipped{background:rgba(107,107,138,.1);color:var(--muted);border:1px solid var(--muted);display:block;}
+
+.quiz-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.action-btn{border-radius:12px;border:1px solid var(--border);padding:13px 8px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.action-btn .btn-icon{font-size:22px;}
+.action-btn .btn-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;}
+.btn-speak{background:rgba(247,106,143,.1);color:var(--accent2);border-color:rgba(247,106,143,.3);}
+.btn-speak:hover:not(:disabled){background:rgba(247,106,143,.2);border-color:var(--accent2);transform:translateY(-2px);}
+.btn-speak.recording{animation:micPulse 1s infinite;border-color:var(--accent2);}
+.btn-show{background:rgba(124,106,247,.1);color:var(--accent);border-color:rgba(124,106,247,.3);}
+.btn-show:hover:not(:disabled){background:rgba(124,106,247,.2);border-color:var(--accent);transform:translateY(-2px);}
+.btn-next{background:rgba(74,222,128,.1);color:var(--green);border-color:rgba(74,222,128,.3);}
+.btn-next:hover:not(:disabled){background:rgba(74,222,128,.2);border-color:var(--green);transform:translateY(-2px);}
+.action-btn:disabled{opacity:.3;cursor:not-allowed;transform:none!important;}
+
+/* ---- RESULTS ---- */
+.results-screen{align-items:center;justify-content:center;text-align:center;gap:18px;}
+.results-emoji{font-size:58px;animation:bounce .6s cubic-bezier(.34,1.56,.64,1) both;}
+.results-title{font-size:32px;font-weight:800;letter-spacing:-.03em;}
+.results-score{font-family:'DM Mono',monospace;font-size:58px;font-weight:300;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;}
+.results-sub{color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;}
+.pass-badge{padding:7px 18px;border-radius:100px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.pass-badge.pass{background:rgba(74,222,128,.15);color:var(--green);border:1px solid var(--green);}
+.pass-badge.fail{background:rgba(248,113,113,.15);color:var(--red);border:1px solid var(--red);}
+.results-breakdown{display:flex;gap:12px;width:100%;}
+.breakdown-item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;flex:1;}
+.breakdown-num{font-size:26px;font-weight:800;letter-spacing:-.02em;}
+.breakdown-num.correct{color:var(--green);}
+.breakdown-num.wrong{color:var(--red);}
+.breakdown-num.skipped{color:var(--muted);}
+.breakdown-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;}
+.results-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+.btn-again,.btn-menu{border-radius:12px;padding:13px 22px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-again{background:linear-gradient(135deg,var(--accent),#9b8af7);border:none;color:white;}
+.btn-again:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(124,106,247,.4);}
+.btn-menu{background:var(--card);border:1px solid var(--border);color:var(--text);}
+.btn-menu:hover{border-color:var(--accent);color:var(--accent);}
+
+.status-msg{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:8px 16px;border-radius:100px;z-index:100;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
+.status-msg.show{opacity:1;}
+
+@media(max-width:480px){
+  .mode-grid{grid-template-columns:1fr;}
+  .results-breakdown{flex-direction:column;}
+  .question-card{padding:20px 16px;}
+  .answer-input-row{flex-direction:column;}
+  .submit-text-btn{width:100%;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><div class="logo-dot"></div>Тест на гражданство</div>
+    <div class="score-badge" id="scoreDisplay" style="display:none">Счёт: <span id="scoreNum">0</span>/<span id="scoreTotal">0</span></div>
+  </header>
+
+  <!-- ===== MENU ===== -->
+  <div class="screen active" id="menuScreen">
+    <div class="menu-scroll">
+      <div class="menu-hero">
+        <h1>Подготовка к<br><em>тесту на гражданство США.</em></h1>
+        <p>// 128 официальных вопросов USCIS · 2025</p>
+      </div>
+
+      <div class="section-label">// Режим ответа</div>
+      <div class="mode-grid">
+        <div class="mode-card active-mode" id="modeVoice" onclick="selectMode('voice')">
+          <span class="mode-icon">🎙️</span>
+          <div class="mode-title">Голосом</div>
+          <div class="mode-desc">Говорите ответ вслух — как на настоящем тесте</div>
+        </div>
+        <div class="mode-card" id="modeStudy" onclick="selectMode('study')">
+          <span class="mode-icon">📖</span>
+          <div class="mode-title">Изучение</div>
+          <div class="mode-desc">Нажмите "Показать ответ" для изучения материала</div>
+        </div>
+      </div>
+
+      <div class="category-section">
+        <div class="section-label">// Темы</div>
+        <div class="cat-grid" id="catGrid"></div>
+      </div>
+
+      <div class="count-row">
+        <span class="count-label">Вопросов:</span>
+        <input type="range" class="count-slider" id="countSlider" min="5" max="128" value="20" oninput="updateCount()">
+        <span class="count-val" id="countVal">20</span>
+      </div>
+
+      <button class="btn-start-quiz" onclick="startQuiz()">Начать тест →</button>
+    </div>
+  </div>
+
+  <!-- ===== QUIZ ===== -->
+  <div class="screen" id="quizScreen">
+    <div class="quiz-progress">
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-text" id="progressText">0 / 0</div>
+    </div>
+
+    <div class="question-card" id="questionCard">
+      <div class="q-meta">
+        <div class="q-number" id="qNumber">ВОПРОС 1</div>
+        <div class="q-cat-tag" id="qCatTag"></div>
+      </div>
+      <div class="q-text" id="qText">Загрузка...</div>
+
+      <!-- Translate button + Russian translation box -->
+      <button class="btn-translate" id="translateBtn" onclick="translateQuestion()">
+        🇷🇺 Перевести на русский
+      </button>
+      <div class="ru-box" id="ruBox">
+        <div class="ru-label">🇷🇺 Перевод</div>
+        <div class="ru-text" id="ruText"></div>
+      </div>
+
+      <!-- Text answer -->
+      <div class="answer-input-row">
+        <input type="text" class="answer-text-input" id="answerInput" placeholder="Введите ответ..." autocomplete="off" onkeydown="handleInputKey(event)">
+        <button class="submit-text-btn" id="submitTextBtn" onclick="submitTextAnswer()">Ответить</button>
+      </div>
+
+      <!-- Voice feedback -->
+      <div class="voice-strip" id="voiceStrip">
+        <span class="voice-icon" id="voiceIcon">💬</span>
+        <span id="voiceText">Нажмите 🎙️ или введите ответ выше</span>
+      </div>
+
+      <div class="answer-reveal" id="answerReveal">
+        <div class="answer-reveal-label">// правильный ответ</div>
+        <div class="answer-reveal-text" id="answerRevealText"></div>
+      </div>
+      <div class="result-tag" id="resultTag"></div>
+    </div>
+
+    <div class="quiz-actions">
+      <button class="action-btn btn-speak" id="speakBtn" onclick="toggleSpeak()">
+        <span class="btn-icon" id="micIcon">🎙️</span>
+        <span class="btn-label">Говорить</span>
+      </button>
+      <button class="action-btn btn-show" id="showBtn" onclick="showAnswer()">
+        <span class="btn-icon">👁️</span>
+        <span class="btn-label">Ответ</span>
+      </button>
+      <button class="action-btn btn-next" id="nextBtn" onclick="nextQuestion()">
+        <span class="btn-icon">→</span>
+        <span class="btn-label">Далее</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== RESULTS ===== -->
+  <div class="screen results-screen" id="resultsScreen">
+    <div class="results-emoji" id="resultsEmoji">🏆</div>
+    <div class="results-title">Тест завершён!</div>
+    <div class="results-score" id="resultsScore">0%</div>
+    <div class="results-sub" id="resultsSub">0 из 0 правильно</div>
+    <div class="pass-badge" id="passBadge"></div>
+    <div class="results-breakdown">
+      <div class="breakdown-item"><div class="breakdown-num correct" id="numCorrect">0</div><div class="breakdown-label">Верно</div></div>
+      <div class="breakdown-item"><div class="breakdown-num wrong" id="numWrong">0</div><div class="breakdown-label">Неверно</div></div>
+      <div class="breakdown-item"><div class="breakdown-num skipped" id="numSkipped">0</div><div class="breakdown-label">Пропущено</div></div>
+    </div>
+    <div class="results-btns">
+      <button class="btn-again" onclick="startQuiz()">Ещё раз</button>
+      <button class="btn-menu" onclick="goMenu()">← Меню</button>
+    </div>
+  </div>
+</div>
+<div class="status-msg" id="statusMsg"></div>
+
+<script>
+// ===================== Q&A DATA (128 questions) =====================
+const ALL_QA = [
+  {q:"What is the form of government of the United States?",a:["Republic","Constitution-based federal republic","Representative democracy"],cat:"Принципы"},
+  {q:"What is the supreme law of the land?",a:["Constitution","U.S. Constitution"],cat:"Принципы"},
+  {q:"Name one thing the U.S. Constitution does.",a:["Forms the government","Defines powers of government","Defines the parts of government","Protects the rights of the people"],cat:"Принципы"},
+  {q:'What does "We the People" mean?',a:["Self-government","Popular sovereignty","Consent of the governed","People should govern themselves","Social contract"],cat:"Принципы"},
+  {q:"How are changes made to the U.S. Constitution?",a:["Amendments","The amendment process"],cat:"Принципы"},
+  {q:"What does the Bill of Rights protect?",a:["The basic rights of Americans","Rights of people living in the United States"],cat:"Принципы"},
+  {q:"How many amendments does the U.S. Constitution have?",a:["27","Twenty-seven"],cat:"Принципы"},
+  {q:"Why is the Declaration of Independence important?",a:["It says America is free from British control","It says all people are created equal","It identifies inherent rights","It identifies individual freedoms"],cat:"Принципы"},
+  {q:"What founding document said the American colonies were free from Britain?",a:["Declaration of Independence"],cat:"Принципы"},
+  {q:"Name two important ideas from the Declaration of Independence and the U.S. Constitution.",a:["Equality","Liberty","Social contract","Natural rights","Limited government","Self-government"],cat:"Принципы"},
+  {q:'The words "Life, Liberty, and the pursuit of Happiness" are in what founding document?',a:["Declaration of Independence"],cat:"Принципы"},
+  {q:"What is the economic system of the United States?",a:["Capitalism","Free market economy"],cat:"Принципы"},
+  {q:"What is the rule of law?",a:["Everyone must follow the law","Leaders must obey the law","Government must obey the law","No one is above the law"],cat:"Принципы"},
+  {q:"Many documents influenced the U.S. Constitution. Name one.",a:["Declaration of Independence","Articles of Confederation","Federalist Papers","Anti-Federalist Papers","Virginia Declaration of Rights","Fundamental Orders of Connecticut","Mayflower Compact","Iroquois Great Law of Peace"],cat:"Принципы"},
+  {q:"There are three branches of government. Why?",a:["So one part does not become too powerful","Checks and balances","Separation of powers"],cat:"Принципы"},
+  {q:"Name the three branches of government.",a:["Legislative, executive, and judicial","Congress, president, and the courts"],cat:"Система управления"},
+  {q:"The President is in charge of which branch of government?",a:["Executive branch"],cat:"Система управления"},
+  {q:"What part of the federal government writes laws?",a:["Congress","Legislature","Legislative branch"],cat:"Система управления"},
+  {q:"What are the two parts of the U.S. Congress?",a:["Senate and House of Representatives","Senate and House"],cat:"Система управления"},
+  {q:"Name one power of the U.S. Congress.",a:["Writes laws","Declares war","Makes the federal budget"],cat:"Система управления"},
+  {q:"How many U.S. senators are there?",a:["100","One hundred"],cat:"Система управления"},
+  {q:"How long is a term for a U.S. senator?",a:["6 years","Six years"],cat:"Система управления"},
+  {q:"How many voting members are in the House of Representatives?",a:["435","Four hundred thirty-five"],cat:"Система управления"},
+  {q:"How long is a term for a member of the House of Representatives?",a:["2 years","Two years"],cat:"Система управления"},
+  {q:"Why do U.S. representatives serve shorter terms than U.S. senators?",a:["To more closely follow public opinion"],cat:"Система управления"},
+  {q:"How many senators does each state have?",a:["2","Two"],cat:"Система управления"},
+  {q:"Why does each state have two senators?",a:["Equal representation","The Great Compromise","Connecticut Compromise"],cat:"Система управления"},
+  {q:"Who does a U.S. senator represent?",a:["Citizens of their state","People of their state"],cat:"Система управления"},
+  {q:"Who elects U.S. senators?",a:["Citizens from their state"],cat:"Система управления"},
+  {q:"Who does a member of the House of Representatives represent?",a:["Citizens in their district","People in their district"],cat:"Система управления"},
+  {q:"Who elects members of the House of Representatives?",a:["Citizens from their district"],cat:"Система управления"},
+  {q:"Some states have more representatives than other states. Why?",a:["The state's population","They have more people","Some states have more people"],cat:"Система управления"},
+  {q:"The President of the United States is elected for how many years?",a:["4 years","Four years"],cat:"Система управления"},
+  {q:"The President can serve only two terms. Why?",a:["The 22nd Amendment","To keep the president from becoming too powerful"],cat:"Система управления"},
+  {q:"What is the name of the President of the United States now?",a:["Donald Trump","Trump"],cat:"Система управления"},
+  {q:"What is the name of the Vice President of the United States now?",a:["JD Vance","Vance"],cat:"Система управления"},
+  {q:"If the president can no longer serve, who becomes president?",a:["The Vice President"],cat:"Система управления"},
+  {q:"Name one power of the president.",a:["Signs bills into law","Vetoes bills","Enforces laws","Commander in Chief","Chief diplomat","Appoints federal judges"],cat:"Система управления"},
+  {q:"Who is Commander in Chief of the U.S. military?",a:["The President"],cat:"Система управления"},
+  {q:"Who signs bills to become laws?",a:["The President"],cat:"Система управления"},
+  {q:"Who vetoes bills?",a:["The President"],cat:"Система управления"},
+  {q:"Who appoints federal judges?",a:["The President"],cat:"Система управления"},
+  {q:"The executive branch has many parts. Name one.",a:["President","Cabinet","Federal departments and agencies"],cat:"Система управления"},
+  {q:"What does the President's Cabinet do?",a:["Advises the President"],cat:"Система управления"},
+  {q:"What are two Cabinet-level positions?",a:["Attorney General","Secretary of State","Secretary of Defense","Secretary of Treasury","Vice President","Secretary of Agriculture","Secretary of Commerce","Secretary of Education","Secretary of Energy","Secretary of Homeland Security"],cat:"Система управления"},
+  {q:"Why is the Electoral College important?",a:["It decides who is elected president","It provides a compromise between popular election and congressional selection"],cat:"Система управления"},
+  {q:"What is one part of the judicial branch?",a:["Supreme Court","Federal Courts"],cat:"Система управления"},
+  {q:"What does the judicial branch do?",a:["Reviews laws","Explains laws","Resolves disputes about the law","Decides if a law goes against the Constitution"],cat:"Система управления"},
+  {q:"What is the highest court in the United States?",a:["Supreme Court"],cat:"Система управления"},
+  {q:"How many seats are on the Supreme Court?",a:["9","Nine"],cat:"Система управления"},
+  {q:"How many Supreme Court justices are usually needed to decide a case?",a:["5","Five"],cat:"Система управления"},
+  {q:"How long do Supreme Court justices serve?",a:["For life","Lifetime appointment"],cat:"Система управления"},
+  {q:"Supreme Court justices serve for life. Why?",a:["To be independent of politics","To limit outside political influence"],cat:"Система управления"},
+  {q:"Name one power that is only for the federal government.",a:["Print paper money","Mint coins","Declare war","Create an army","Make treaties","Set foreign policy"],cat:"Система управления"},
+  {q:"Name one power that is only for the states.",a:["Provide schooling and education","Provide protection","Provide safety","Give a driver's license","Approve zoning and land use"],cat:"Система управления"},
+  {q:"What is the purpose of the 10th Amendment?",a:["Powers not given to the federal government belong to the states or to the people"],cat:"Система управления"},
+  {q:"There are four amendments about who can vote. Describe one.",a:["Citizens 18 and older can vote","You don't have to pay a poll tax to vote","Any citizen can vote","A male citizen of any race can vote"],cat:"Права"},
+  {q:"Who can vote in federal elections and serve on a jury?",a:["Citizens","U.S. citizens"],cat:"Права"},
+  {q:"What are three rights of everyone living in the United States?",a:["Freedom of expression","Freedom of speech","Freedom of assembly","Freedom to petition the government","Freedom of religion","The right to bear arms"],cat:"Права"},
+  {q:"What do we show loyalty to when we say the Pledge of Allegiance?",a:["The United States","The flag"],cat:"Права"},
+  {q:"Name two promises that new citizens make in the Oath of Allegiance.",a:["Give up loyalty to other countries","Defend the Constitution","Obey the laws of the United States","Serve in the military","Be loyal to the United States"],cat:"Права"},
+  {q:"How can people become United States citizens?",a:["Be born in the United States","Naturalize","Derive citizenship"],cat:"Права"},
+  {q:"What are two examples of civic participation?",a:["Vote","Run for office","Join a political party","Help with a campaign","Join a civic group","Contact elected officials"],cat:"Права"},
+  {q:"What is one way Americans can serve their country?",a:["Vote","Pay taxes","Obey the law","Serve in the military","Run for office"],cat:"Права"},
+  {q:"Why is it important to pay federal taxes?",a:["Required by law","All people pay to fund the federal government","Civic duty"],cat:"Права"},
+  {q:"Name one reason why men age 18–25 must register for the Selective Service.",a:["Required by law","Civic duty","Makes the draft fair"],cat:"Права"},
+  {q:"The colonists came to America for many reasons. Name one.",a:["Freedom","Political liberty","Religious freedom","Economic opportunity","Escape persecution"],cat:"Колониальная эпоха"},
+  {q:"Who lived in America before the Europeans arrived?",a:["American Indians","Native Americans"],cat:"Колониальная эпоха"},
+  {q:"What group of people was taken and sold as slaves?",a:["Africans","People from Africa"],cat:"Колониальная эпоха"},
+  {q:"What war did the Americans fight to win independence from Britain?",a:["American Revolution","Revolutionary War","War for Independence"],cat:"Колониальная эпоха"},
+  {q:"Name one reason why the Americans declared independence from Britain.",a:["High taxes","Taxation without representation","British soldiers stayed in Americans' houses","They did not have self-government","Boston Massacre","Boston Tea Party","Stamp Act"],cat:"Колониальная эпоха"},
+  {q:"Who wrote the Declaration of Independence?",a:["Thomas Jefferson","Jefferson"],cat:"Колониальная эпоха"},
+  {q:"When was the Declaration of Independence adopted?",a:["July 4, 1776","1776"],cat:"Колониальная эпоха"},
+  {q:"The American Revolution had many important events. Name one.",a:["Battle of Bunker Hill","Declaration of Independence","Washington Crossing the Delaware","Battle of Saratoga","Valley Forge","Battle of Yorktown"],cat:"Колониальная эпоха"},
+  {q:"There were 13 original states. Name five.",a:["New Hampshire","Massachusetts","Rhode Island","Connecticut","New York","New Jersey","Pennsylvania","Delaware","Maryland","Virginia","North Carolina","South Carolina","Georgia"],cat:"Колониальная эпоха"},
+  {q:"What founding document was written in 1787?",a:["U.S. Constitution","Constitution"],cat:"Колониальная эпоха"},
+  {q:"The Federalist Papers supported the U.S. Constitution. Name one of the writers.",a:["James Madison","Madison","Alexander Hamilton","Hamilton","John Jay","Jay","Publius"],cat:"Колониальная эпоха"},
+  {q:"Why were the Federalist Papers important?",a:["They helped people understand the Constitution","They supported passing the Constitution"],cat:"Колониальная эпоха"},
+  {q:"Benjamin Franklin is famous for many things. Name one.",a:["Founded the first free public libraries","First Postmaster General","Helped write the Declaration of Independence","Inventor","U.S. diplomat"],cat:"Колониальная эпоха"},
+  {q:"George Washington is famous for many things. Name one.",a:["Father of Our Country","First president","General of the Continental Army","President of the Constitutional Convention"],cat:"Колониальная эпоха"},
+  {q:"Thomas Jefferson is famous for many things. Name one.",a:["Writer of the Declaration of Independence","Third president","Louisiana Purchase","First Secretary of State","Founded University of Virginia"],cat:"Колониальная эпоха"},
+  {q:"James Madison is famous for many things. Name one.",a:["Father of the Constitution","Fourth president","President during the War of 1812","Writer of the Federalist Papers"],cat:"Колониальная эпоха"},
+  {q:"Alexander Hamilton is famous for many things. Name one.",a:["First Secretary of the Treasury","Writer of the Federalist Papers","Helped establish the First Bank of the United States","Aide to General George Washington"],cat:"Колониальная эпоха"},
+  {q:"What territory did the United States buy from France in 1803?",a:["Louisiana Territory","Louisiana"],cat:"XIX век"},
+  {q:"Name one war fought by the United States in the 1800s.",a:["War of 1812","Mexican-American War","Civil War","Spanish-American War"],cat:"XIX век"},
+  {q:"Name the U.S. war between the North and the South.",a:["The Civil War","Civil War"],cat:"XIX век"},
+  {q:"The Civil War had many important events. Name one.",a:["Battle of Fort Sumter","Emancipation Proclamation","Battle of Gettysburg","Sherman's March","Surrender at Appomattox","Lincoln was assassinated"],cat:"XIX век"},
+  {q:"Abraham Lincoln is famous for many things. Name one.",a:["Freed the slaves","Emancipation Proclamation","Saved the Union","Led the United States during the Civil War","16th president","Delivered the Gettysburg Address"],cat:"XIX век"},
+  {q:"What did the Emancipation Proclamation do?",a:["Freed the slaves","Freed slaves in the Confederacy","Freed slaves in most Southern states"],cat:"XIX век"},
+  {q:"What U.S. war ended slavery?",a:["The Civil War","Civil War"],cat:"XIX век"},
+  {q:"What amendment says all persons born or naturalized in the U.S. are citizens?",a:["14th Amendment","Fourteenth Amendment"],cat:"XIX век"},
+  {q:"When did all men get the right to vote?",a:["After the Civil War","During Reconstruction","15th Amendment","1870"],cat:"XIX век"},
+  {q:"Name one leader of the women's rights movement in the 1800s.",a:["Susan B. Anthony","Elizabeth Cady Stanton","Sojourner Truth","Harriet Tubman","Lucretia Mott","Lucy Stone"],cat:"XIX век"},
+  {q:"Name one war fought by the United States in the 1900s.",a:["World War I","World War II","Korean War","Vietnam War","Gulf War"],cat:"Новейшая история"},
+  {q:"Why did the United States enter World War I?",a:["Because Germany attacked U.S. ships","To support the Allied Powers","To oppose the Central Powers"],cat:"Новейшая история"},
+  {q:"When did all women get the right to vote?",a:["1920","After World War I","19th Amendment"],cat:"Новейшая история"},
+  {q:"What was the Great Depression?",a:["Longest economic recession in modern history"],cat:"Новейшая история"},
+  {q:"When did the Great Depression start?",a:["1929","The Great Crash","Stock market crash of 1929"],cat:"Новейшая история"},
+  {q:"Who was president during the Great Depression and World War II?",a:["Franklin Roosevelt","Roosevelt","FDR"],cat:"Новейшая история"},
+  {q:"Why did the United States enter World War II?",a:["Bombing of Pearl Harbor","Japanese attacked Pearl Harbor","To support the Allied Powers","To oppose the Axis Powers"],cat:"Новейшая история"},
+  {q:"Dwight Eisenhower is famous for many things. Name one.",a:["General during World War II","President during the Korean War","34th president","Signed the Federal-Aid Highway Act"],cat:"Новейшая история"},
+  {q:"Who was the United States' main rival during the Cold War?",a:["Soviet Union","USSR","Russia"],cat:"Новейшая история"},
+  {q:"During the Cold War, what was one main concern of the United States?",a:["Communism","Nuclear war"],cat:"Новейшая история"},
+  {q:"Why did the United States enter the Korean War?",a:["To stop the spread of communism"],cat:"Новейшая история"},
+  {q:"Why did the United States enter the Vietnam War?",a:["To stop the spread of communism"],cat:"Новейшая история"},
+  {q:"What did the civil rights movement do?",a:["Fought to end racial discrimination"],cat:"Новейшая история"},
+  {q:"Martin Luther King, Jr. is famous for many things. Name one.",a:["Fought for civil rights","Worked for equality for all Americans"],cat:"Новейшая история"},
+  {q:"Why did the United States enter the Persian Gulf War?",a:["To force the Iraqi military from Kuwait"],cat:"Новейшая история"},
+  {q:"What major event happened on September 11, 2001?",a:["Terrorists attacked the United States","Terrorists crashed planes into the World Trade Center","Terrorists crashed a plane into the Pentagon"],cat:"Новейшая история"},
+  {q:"Name one U.S. military conflict after September 11, 2001.",a:["War on Terror","War in Afghanistan","War in Iraq"],cat:"Новейшая история"},
+  {q:"Name one American Indian tribe in the United States.",a:["Apache","Cherokee","Navajo","Sioux","Cheyenne","Lakota","Mohawk","Seminole","Choctaw","Creek","Crow","Pueblo","Blackfeet","Chippewa"],cat:"Новейшая история"},
+  {q:"Name one example of an American innovation.",a:["Light bulb","Automobile","Skyscrapers","Airplane","Assembly line","Landing on the moon","Integrated circuit"],cat:"Новейшая история"},
+  {q:"What is the capital of the United States?",a:["Washington D.C.","Washington"],cat:"Символы и праздники"},
+  {q:"Where is the Statue of Liberty?",a:["New York Harbor","Liberty Island","New York","New Jersey"],cat:"Символы и праздники"},
+  {q:"Why does the flag have 13 stripes?",a:["Because there were 13 original colonies","The stripes represent the original colonies"],cat:"Символы и праздники"},
+  {q:"Why does the flag have 50 stars?",a:["One star for each state","Each star represents a state","Because there are 50 states"],cat:"Символы и праздники"},
+  {q:"What is the name of the national anthem?",a:["The Star-Spangled Banner","Star-Spangled Banner"],cat:"Символы и праздники"},
+  {q:'What does "E Pluribus Unum" mean?',a:["Out of many, one","We all become one"],cat:"Символы и праздники"},
+  {q:"What is Independence Day?",a:["A holiday to celebrate U.S. independence from Britain","The country's birthday"],cat:"Символы и праздники"},
+  {q:"Name three national U.S. holidays.",a:["New Year's Day","Martin Luther King Jr. Day","Presidents Day","Memorial Day","Juneteenth","Independence Day","Labor Day","Columbus Day","Veterans Day","Thanksgiving","Christmas"],cat:"Символы и праздники"},
+  {q:"What is Memorial Day?",a:["A holiday to honor soldiers who died in military service"],cat:"Символы и праздники"},
+  {q:"What is Veterans Day?",a:["A holiday to honor people in the U.S. military","A holiday to honor people who have served in the U.S. military"],cat:"Символы и праздники"},
+];
+
+// ===================== STATE =====================
+const CATS = [...new Set(ALL_QA.map(q=>q.cat))];
+let selectedCats = new Set(CATS);
+let quizMode = 'voice';
+let quizCount = 20;
+let shuffled = [];
+let currentIdx = 0;
+let score = {correct:0,wrong:0,skipped:0};
+let recognition = null;
+let quizAnswered = false;
+let translateCache = {};
+
+// ===================== UTILS =====================
+function showStatus(msg,dur=2800){
+  const e=document.getElementById('statusMsg');
+  e.textContent=msg;e.classList.add('show');
+  setTimeout(()=>e.classList.remove('show'),dur);
+}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function norm(s){return s.toLowerCase().replace(/[^a-z0-9\s]/g,'').trim();}
+function checkAns(spoken,answers){
+  const s=norm(spoken);
+  return answers.some(a=>{
+    const c=norm(a);
+    if(s===c||s.includes(c))return true;
+    const w=c.split(/\s+/).filter(x=>x.length>2);
+    return w.length>0&&w.every(x=>s.includes(x));
+  });
+}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+// ===================== TRANSLATE =====================
+async function translateQuestion(){
+  const btn=document.getElementById('translateBtn');
+  const box=document.getElementById('ruBox');
+  const ruText=document.getElementById('ruText');
+  const qa=shuffled[currentIdx];
+  const qText=qa.q;
+
+  // Already cached?
+  if(translateCache[qText]){
+    ruText.textContent=translateCache[qText];
+    box.classList.add('show');
+    speak_ru(translateCache[qText]);
+    return;
+  }
+
+  btn.disabled=true;
+  ruText.innerHTML='<span class="ru-loading">Перевод...</span>';
+  box.classList.add('show');
+
+  try {
+    // Use MyMemory free translation API (no key needed)
+    const url=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(qText)}&langpair=en|ru`;
+    const res=await fetch(url);
+    const data=await res.json();
+    const translation=data.responseData?.translatedText||'Перевод недоступен';
+    translateCache[qText]=translation;
+    ruText.textContent=translation;
+    speak_ru(translation);
+  } catch(e){
+    ruText.textContent='Нет подключения к интернету для перевода.';
+  }
+  btn.disabled=false;
+}
+
+function speak_ru(text){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='ru-RU';u.rate=0.9;
+  const voices=window.speechSynthesis.getVoices();
+  const rv=voices.find(v=>v.lang.startsWith('ru'));
+  if(rv)u.voice=rv;
+  window.speechSynthesis.speak(u);
+}
+
+// ===================== MENU =====================
+function buildCatChips(){
+  const g=document.getElementById('catGrid');g.innerHTML='';
+  const all=document.createElement('div');
+  all.className='cat-chip selected';all.id='chip-all';
+  all.textContent='Все (128)';all.onclick=toggleAll;g.appendChild(all);
+  CATS.forEach(cat=>{
+    const n=ALL_QA.filter(q=>q.cat===cat).length;
+    const c=document.createElement('div');
+    c.className='cat-chip selected';c.id='chip-'+cat;
+    c.textContent=`${cat} (${n})`;
+    c.onclick=()=>toggleCat(cat,c);g.appendChild(c);
+  });
+}
+function toggleAll(){
+  if(selectedCats.size===CATS.length){selectedCats.clear();document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('selected'));}
+  else{selectedCats=new Set(CATS);document.querySelectorAll('.cat-chip').forEach(c=>c.classList.add('selected'));}
+  updateSliderMax();
+}
+function toggleCat(cat,el){
+  selectedCats.has(cat)?selectedCats.delete(cat):selectedCats.add(cat);
+  el.classList.toggle('selected',selectedCats.has(cat));
+  document.getElementById('chip-all').classList.toggle('selected',selectedCats.size===CATS.length);
+  updateSliderMax();
+}
+function updateSliderMax(){
+  const pool=ALL_QA.filter(q=>selectedCats.has(q.cat));
+  const s=document.getElementById('countSlider');
+  s.max=pool.length;s.value=Math.min(parseInt(s.value),pool.length);updateCount();
+}
+function updateCount(){quizCount=parseInt(document.getElementById('countSlider').value);document.getElementById('countVal').textContent=quizCount;}
+function selectMode(m){
+  quizMode=m;
+  document.getElementById('modeVoice').classList.toggle('active-mode',m==='voice');
+  document.getElementById('modeStudy').classList.toggle('active-mode',m==='study');
+}
+
+// ===================== QUIZ =====================
+function startQuiz(){
+  const pool=ALL_QA.filter(q=>selectedCats.has(q.cat));
+  if(!pool.length){showStatus('⚠️ Выберите хотя бы одну тему');return;}
+  shuffled=shuffle(pool).slice(0,quizCount);
+  currentIdx=0;score={correct:0,wrong:0,skipped:0};
+  document.getElementById('scoreDisplay').style.display='flex';
+  document.getElementById('scoreTotal').textContent=shuffled.length;
+  updateScoreDisplay();showScreen('quizScreen');loadQuestion();
+}
+function updateScoreDisplay(){document.getElementById('scoreNum').textContent=score.correct;}
+
+function loadQuestion(){
+  if(currentIdx>=shuffled.length){endQuiz();return;}
+  quizAnswered=false;
+  const qa=shuffled[currentIdx];
+  document.getElementById('qNumber').textContent=`ВОПРОС ${currentIdx+1}`;
+  document.getElementById('qCatTag').textContent=qa.cat;
+  document.getElementById('qText').textContent=qa.q;
+  document.getElementById('answerRevealText').innerHTML=
+    qa.a[0]+(qa.a.length>1?`<span class="also">Также принимается: ${qa.a.slice(1,5).join(' · ')}${qa.a.length>5?' …':''}</span>`:'');
+  document.getElementById('answerReveal').classList.remove('visible');
+
+  // Reset translate
+  document.getElementById('ruBox').classList.remove('show');
+  document.getElementById('ruText').textContent='';
+  document.getElementById('translateBtn').disabled=false;
+
+  const rt=document.getElementById('resultTag');rt.className='result-tag';rt.textContent='';
+  setVoiceStrip('💬','Нажмите 🎙️ или введите ответ выше','');
+  const inp=document.getElementById('answerInput');inp.value='';inp.disabled=false;
+  document.getElementById('submitTextBtn').disabled=false;
+  document.getElementById('speakBtn').disabled=quizMode==='study';
+  document.getElementById('speakBtn').style.opacity=quizMode==='study'?'0.3':'1';
+  document.getElementById('showBtn').disabled=false;
+  document.getElementById('nextBtn').disabled=false;
+  document.getElementById('progressFill').style.width=`${(currentIdx/shuffled.length)*100}%`;
+  document.getElementById('progressText').textContent=`${currentIdx} / ${shuffled.length}`;
+  speak(qa.q);
+}
+
+function setVoiceStrip(icon,txt,cls){
+  document.getElementById('voiceIcon').textContent=icon;
+  document.getElementById('voiceText').textContent=txt;
+  document.getElementById('voiceStrip').className='voice-strip'+(cls?' '+cls:'');
+}
+
+function handleInputKey(e){if(e.key==='Enter')submitTextAnswer();}
+function submitTextAnswer(){
+  const v=document.getElementById('answerInput').value.trim();
+  if(!v){showStatus('⚠️ Введите ответ');return;}
+  if(quizAnswered)return;
+  evaluateAnswer(v);
+}
+
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+function toggleSpeak(){
+  if(quizAnswered)return;
+  if(!SpeechRecognition){showStatus('❌ Откройте в Chrome для работы микрофона');return;}
+  const btn=document.getElementById('speakBtn');
+  if(recognition){recognition.abort();recognition=null;resetMicBtn();return;}
+  btn.classList.add('recording');
+  document.getElementById('micIcon').textContent='⏹️';
+  setVoiceStrip('🎤','Говорите сейчас...','listening');
+  recognition=new SpeechRecognition();
+  recognition.lang='en-US';recognition.interimResults=false;recognition.maxAlternatives=3;
+  recognition.onresult=e=>{
+    let best=e.results[0][0].transcript;
+    const qa=shuffled[currentIdx];
+    for(let i=0;i<e.results[0].length;i++){
+      if(checkAns(e.results[0][i].transcript,qa.a)){best=e.results[0][i].transcript;break;}
+    }
+    document.getElementById('answerInput').value=best;
+    evaluateAnswer(best);
+  };
+  recognition.onerror=e=>{
+    if(e.error==='not-allowed')showStatus('❌ Микрофон заблокирован — разрешите доступ в браузере');
+    else if(e.error!=='aborted')showStatus('⚠️ Ошибка микрофона: '+e.error);
+    resetMicBtn();
+  };
+  recognition.onend=resetMicBtn;
+  recognition.start();
+}
+function resetMicBtn(){
+  document.getElementById('speakBtn').classList.remove('recording');
+  document.getElementById('micIcon').textContent='🎙️';
+  recognition=null;
+}
+
+function evaluateAnswer(text){
+  const qa=shuffled[currentIdx];
+  const ok=checkAns(text,qa.a);
+  quizAnswered=true;
+  document.getElementById('answerInput').disabled=true;
+  document.getElementById('submitTextBtn').disabled=true;
+  document.getElementById('voiceIcon').textContent=ok?'✓':'✗';
+  document.getElementById('voiceText').textContent=text;
+  if(ok){
+    score.correct++;
+    setVoiceStrip('✓',text,'correct has-text');
+    document.getElementById('resultTag').textContent='✓ ВЕРНО';
+    document.getElementById('resultTag').className='result-tag correct';
+    speak('Correct!');
+  } else {
+    score.wrong++;
+    setVoiceStrip('✗',text,'incorrect has-text');
+    document.getElementById('resultTag').textContent='✗ НЕВЕРНО';
+    document.getElementById('resultTag').className='result-tag incorrect';
+    document.getElementById('answerReveal').classList.add('visible');
+    speak('Incorrect. The answer is: '+qa.a[0]);
+  }
+  updateScoreDisplay();
+}
+
+function showAnswer(){
+  const qa=shuffled[currentIdx];
+  document.getElementById('answerReveal').classList.add('visible');
+  if(!quizAnswered){
+    quizAnswered=true;score.skipped++;
+    document.getElementById('resultTag').textContent='— ПРОПУЩЕНО';
+    document.getElementById('resultTag').className='result-tag skipped';
+    document.getElementById('answerInput').disabled=true;
+    document.getElementById('submitTextBtn').disabled=true;
+    updateScoreDisplay();
+  }
+  speak(qa.a[0]);
+}
+
+function nextQuestion(){
+  if(recognition){recognition.abort();recognition=null;resetMicBtn();}
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+  if(!quizAnswered){score.skipped++;updateScoreDisplay();}
+  currentIdx++;loadQuestion();
+}
+
+// ===================== TTS =====================
+function speak(text){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';u.rate=0.92;
+  const voices=window.speechSynthesis.getVoices();
+  const v=voices.find(v=>v.lang==='en-US'&&(v.name.includes('Google')||v.name.includes('Samantha')))||voices.find(v=>v.lang.startsWith('en'));
+  if(v)u.voice=v;
+  window.speechSynthesis.speak(u);
+}
+window.speechSynthesis&&window.speechSynthesis.addEventListener('voiceschanged',()=>{});
+
+// ===================== RESULTS =====================
+function endQuiz(){
+  const total=shuffled.length;
+  const pct=Math.round((score.correct/total)*100);
+  document.getElementById('resultsScore').textContent=pct+'%';
+  document.getElementById('resultsSub').textContent=`${score.correct} из ${total} правильно`;
+  document.getElementById('numCorrect').textContent=score.correct;
+  document.getElementById('numWrong').textContent=score.wrong;
+  document.getElementById('numSkipped').textContent=score.skipped;
+  document.getElementById('progressFill').style.width='100%';
+  document.getElementById('resultsEmoji').textContent=pct===100?'🏆':pct>=80?'🌟':pct>=60?'👍':pct>=40?'💪':'📚';
+  const pb=document.getElementById('passBadge');
+  pb.textContent=pct>=60?'✓ ПРОХОДНОЙ БАЛЛ':'✗ Ниже проходного — продолжайте учить!';
+  pb.className='pass-badge '+(pct>=60?'pass':'fail');
+  document.getElementById('scoreDisplay').style.display='none';
+  showScreen('resultsScreen');
+  speak(`Quiz complete! You scored ${pct} percent.`);
+}
+
+function goMenu(){
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+  if(recognition){recognition.abort();recognition=null;}
+  document.getElementById('scoreDisplay').style.display='none';
+  showScreen('menuScreen');
+}
+
+// ===================== INIT =====================
+buildCatChips();updateCount();
+</script>
+</body>
+</html>
